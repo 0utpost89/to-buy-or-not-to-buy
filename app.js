@@ -252,7 +252,33 @@ document.getElementById("scanAgainBtn").addEventListener("click", () => showScre
 document.getElementById("errorBackBtn").addEventListener("click", () => showScreen("scan"));
 
 /* ---------- lookup pipeline ---------- */
-const CORS_PROXY = "https://api.allorigins.win/raw?url=";
+// UPCitemdb's trial API has no CORS headers, so browser calls must go through a
+// public proxy. These free proxies are flaky (rate limits, occasional downtime),
+// so we try several in order and use whichever responds first.
+const CORS_PROXIES = [
+  {
+    build: (target) => `https://api.allorigins.win/raw?url=${encodeURIComponent(target)}`,
+    parse: (res) => res.json(),
+  },
+  {
+    build: (target) => `https://api.allorigins.win/get?url=${encodeURIComponent(target)}`,
+    parse: async (res) => JSON.parse((await res.json()).contents),
+  },
+  {
+    build: (target) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(target)}`,
+    parse: (res) => res.json(),
+  },
+];
+
+async function fetchWithTimeout(url, ms) {
+  const controller = new AbortController();
+  const t = setTimeout(() => controller.abort(), ms);
+  try {
+    return await fetch(url, { signal: controller.signal });
+  } finally {
+    clearTimeout(t);
+  }
+}
 
 function cleanTitle(rawTitle) {
   let t = rawTitle;
@@ -265,11 +291,21 @@ function cleanTitle(rawTitle) {
 
 async function lookupUPC(code) {
   const target = `https://api.upcitemdb.com/prod/trial/lookup?upc=${encodeURIComponent(code)}`;
-  const res = await fetch(CORS_PROXY + encodeURIComponent(target));
-  if (!res.ok) throw new Error("UPC lookup service unavailable");
-  const data = await res.json();
-  if (!data.items || !data.items.length) throw new Error("No product found for that barcode");
-  return data.items[0];
+  let lastErr = null;
+
+  for (const proxy of CORS_PROXIES) {
+    try {
+      const res = await fetchWithTimeout(proxy.build(target), 8000);
+      if (!res.ok) { lastErr = new Error(`proxy responded ${res.status}`); continue; }
+      const data = await proxy.parse(res);
+      if (data && data.code === "INVALID_UPC") throw new Error("That doesn't look like a valid barcode.");
+      if (!data || !data.items || !data.items.length) { lastErr = new Error("no items in response"); continue; }
+      return data.items[0];
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  throw new Error("No product found for that barcode, or the lookup service is temporarily down. Try again in a moment, or type the title straight into a search if this keeps happening.");
 }
 
 async function omdbSearch(title) {
