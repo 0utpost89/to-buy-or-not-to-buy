@@ -151,7 +151,12 @@ async function startScanner(cameraId) {
   try {
     await qrScanner.start(videoConstraints, config, onScanSuccess, () => {});
   } catch (err) {
-    // fall back to the simplest possible constraint set if the fancy one is rejected
+    // The library can be left "mid-transition" internally after a failed start(),
+    // so retrying on the same instance throws "already under transition". Throw
+    // away that instance and retry fresh with the simplest possible constraints.
+    try { await qrScanner.stop(); } catch {}
+    try { qrScanner.clear(); } catch {}
+    qrScanner = new Html5Qrcode(READER_ID, { formatsToSupport: barcodeFormats, verbose: false });
     await qrScanner.start(cameraConfig, config, onScanSuccess, () => {});
   }
 
@@ -219,7 +224,11 @@ switchCamBtn.addEventListener("click", async () => {
   if (!cameraList.length) return;
   cameraIndex = (cameraIndex + 1) % cameraList.length;
   currentCameraId = cameraList[cameraIndex].id;
-  await startScanner(currentCameraId);
+  try {
+    await startScanner(currentCameraId);
+  } catch (err) {
+    showError("Camera problem", err.message || String(err));
+  }
 });
 
 async function initCameras() {
