@@ -313,12 +313,19 @@ async function fetchWithTimeout(url, ms) {
   }
 }
 
-function cleanTitle(rawTitle) {
+function cleanTitle(rawTitle, code) {
   let t = rawTitle;
+  // UPCitemdb listings often tack on "<Title> , <UPC>, <actor>, <actor>."
+  // after the real title — cut everything from the first comma onward.
+  const commaIdx = t.indexOf(",");
+  if (commaIdx > 0) t = t.slice(0, commaIdx);
   t = t.replace(/\[.*?\]/g, " ");
   t = t.replace(/\(.*?\)/g, " ");
   t = t.replace(/\b(blu-?ray|4k|uhd|dvd|region\s?[a-c0-9]+|steelbook|widescreen|full\s?screen|special\s?edition|collector'?s\s?edition|remastered|ultra\s?hd|digital\s?copy|includes.*|disc\s?\d+)\b/gi, " ");
+  if (code) t = t.split(code).join(" ");
+  t = t.replace(/\d{5,}/g, " "); // stray barcode-like numbers embedded in the title
   t = t.replace(/\s+/g, " ").trim();
+  t = t.replace(/[.,;:\-\s]+$/, "").trim(); // trailing punctuation left behind by the strips above
   return t;
 }
 
@@ -396,7 +403,7 @@ async function handleBarcode(code) {
   document.getElementById("loadingText").textContent = `Looking up barcode ${code}…`;
   try {
     const product = await lookupUPC(code);
-    const title = cleanTitle(product.title || "");
+    const title = cleanTitle(product.title || "", code);
     if (!title) throw new Error("Couldn't work out a title from that barcode's listing.");
 
     document.getElementById("loadingText").textContent = `Fetching ratings for "${title}"…`;
