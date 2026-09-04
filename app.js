@@ -251,6 +251,30 @@ document.getElementById("manualForm").addEventListener("submit", (e) => {
 document.getElementById("scanAgainBtn").addEventListener("click", () => showScreen("scan"));
 document.getElementById("errorBackBtn").addEventListener("click", () => showScreen("scan"));
 
+document.getElementById("titleSearchForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const title = document.getElementById("titleSearchInput").value.trim();
+  if (!title) return;
+  showScreen("loading");
+  document.getElementById("loadingText").textContent = `Fetching ratings for "${title}"…`;
+  try {
+    const omdbData = await omdbSearch(title);
+    const { rt, imdb } = extractScores(omdbData);
+    const { verdict, reason } = computeVerdict(rt, imdb);
+    const item = {
+      barcode: "manual title search",
+      title: omdbData.Title || title,
+      year: omdbData.Year || "",
+      rt, imdb, verdict, reason,
+      timestamp: Date.now(),
+    };
+    pushHistory(item);
+    renderResult(item);
+  } catch (err) {
+    showError("Couldn't find that title", err.message || String(err));
+  }
+});
+
 /* ---------- lookup pipeline ---------- */
 // UPCitemdb's trial API has no CORS headers, so browser calls must go through a
 // public proxy. These free proxies are flaky (rate limits, occasional downtime),
