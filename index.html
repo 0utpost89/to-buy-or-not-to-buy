@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#E20A03">
+<title>To Buy or Not to Buy</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%23E20A03%22/><text x=%2250%22 y=%2268%22 font-size=%2260%22 text-anchor=%22middle%22 fill=%22white%22 font-family=%22Arial%22>?</text></svg>">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <h1 class="brand">To Buy <span>or Not to Buy</span></h1>
+    <button id="settingsBtn" class="icon-btn" aria-label="Settings">⚙</button>
+  </div>
+</header>
+
+<main id="app">
+
+  <!-- SCAN SCREEN -->
+  <section id="scanScreen" class="screen active">
+    <div id="readerWrap">
+      <div id="reader"></div>
+      <div class="reticle" id="reticle"></div>
+      <div class="scan-hint">Fill the box with the barcode. Hold still, tap the box to focus.</div>
+    </div>
+
+    <div class="scan-controls">
+      <button id="torchBtn" class="ctrl-btn" hidden>🔦 Torch</button>
+      <button id="zoomInBtn" class="ctrl-btn" hidden>➕ Zoom</button>
+      <button id="switchCamBtn" class="ctrl-btn">🔄 Camera</button>
+    </div>
+
+    <div class="manual-entry">
+      <p>Camera not focusing? Type the barcode instead:</p>
+      <form id="manualForm">
+        <input id="manualInput" inputmode="numeric" pattern="[0-9]*" placeholder="e.g. 5051892123456" autocomplete="off">
+        <button type="submit">Look up</button>
+      </form>
+    </div>
+
+    <div class="history" id="history"></div>
+  </section>
+
+  <!-- LOADING SCREEN -->
+  <section id="loadingScreen" class="screen">
+    <div class="spinner"></div>
+    <p id="loadingText">Looking up barcode…</p>
+  </section>
+
+  <!-- RESULT SCREEN -->
+  <section id="resultScreen" class="screen">
+    <div id="verdictCard" class="verdict-card">
+      <div class="verdict-badge" id="verdictBadge">BUY</div>
+      <h2 id="movieTitle">Movie Title</h2>
+      <p id="movieMeta"></p>
+
+      <div class="scores">
+        <div class="score-box">
+          <div class="score-label">Tomatometer</div>
+          <div class="score-value" id="rtScore">–</div>
+        </div>
+        <div class="score-box">
+          <div class="score-label">IMDb</div>
+          <div class="score-value" id="imdbScore">–</div>
+        </div>
+      </div>
+
+      <p class="verdict-reason" id="verdictReason"></p>
+    </div>
+
+    <button id="scanAgainBtn" class="primary-btn">Scan next one</button>
+  </section>
+
+  <!-- ERROR SCREEN -->
+  <section id="errorScreen" class="screen">
+    <div class="verdict-card">
+      <div class="verdict-badge unknown">?</div>
+      <h2 id="errorTitle">Couldn't find that one</h2>
+      <p id="errorMessage"></p>
+    </div>
+    <button id="errorBackBtn" class="primary-btn">Try again</button>
+  </section>
+
+</main>
+
+<!-- SETTINGS MODAL -->
+<div id="settingsModal" class="modal" hidden>
+  <div class="modal-card">
+    <h2>Settings</h2>
+    <label for="omdbKeyInput">OMDb API key</label>
+    <input id="omdbKeyInput" type="text" placeholder="paste your free key here">
+    <p class="modal-hint">
+      Free key from <a href="https://www.omdbapi.com/apikey.aspx" target="_blank" rel="noopener">omdbapi.com/apikey.aspx</a>
+      (choose the free 1,000 req/day tier, confirm via the email they send you).
+      This app runs entirely in your browser — the key is stored only on this device (localStorage), never sent anywhere except OMDb.
+    </p>
+
+    <label for="buyThreshold">Minimum Tomatometer score to say "BUY" (used when a critic score exists)</label>
+    <input id="buyThreshold" type="number" min="0" max="100" step="5">
+
+    <label for="imdbThreshold">Minimum IMDb score to say "BUY" (used when no Tomatometer score exists)</label>
+    <input id="imdbThreshold" type="number" min="0" max="10" step="0.5">
+
+    <div class="modal-actions">
+      <button id="clearHistoryBtn" class="secondary-btn">Clear scan history</button>
+      <button id="settingsSaveBtn" class="primary-btn">Save</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
